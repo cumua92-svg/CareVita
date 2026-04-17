@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Care Vita">
+<title>Care Vita</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  :root {
+    --safe-top: env(safe-area-inset-top, 44px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+    background: #1c1c1e;
+  }
+
+  .app {
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    background: #1c1c1e;
+  }
+
+  /* STATUS BAR */
+  .status-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: calc(var(--safe-top) + 4px) 16px 6px;
+    font-size: 11px; color: #aaa;
+    background: #1c1c1e; flex-shrink: 0;
+  }
+  .status-time { font-weight: 600; color: #fff; font-size: 12px; }
+  .status-icons { display: flex; align-items: center; gap: 5px; }
+  .status-icons svg { display: block; flex-shrink: 0; }
+
+  /* SLIDES */
+  .slides { flex: 1; position: relative; overflow: hidden; }
+  .slide { position: absolute; inset: 0; display: none; flex-direction: column; background: #1c1c1e; overflow: hidden; }
+  .slide.active { display: flex; }
+
+  /* SCROLLABLE AREAS */
+  .scroll-area {
+    flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    padding-bottom: calc(var(--safe-bottom) + 8px);
+  }
+  .scroll-area::-webkit-scrollbar { display: none; }
+
+  /* LOGIN */
+  .login-inner { display: flex; flex-direction: column; height: 100%; padding: 0 24px calc(var(--safe-bottom) + 24px); }
+  .login-top { text-align: center; padding: 32px 0 28px; }
+  .login-logo { width: 64px; height: 64px; background: #34d399; border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }
+  .login-logo svg { width: 34px; height: 34px; stroke: #fff; fill: none; stroke-width: 2; }
+  .login-title { font-size: 26px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+  .login-sub { font-size: 13px; color: #888; font-family: monospace; letter-spacing: 0.5px; }
+  .login-form { flex: 1; display: flex; flex-direction: column; }
+  .field-label { font-size: 11px; font-weight: 600; color: #888; letter-spacing: 1px; margin-bottom: 8px; margin-top: 20px; }
+  .field-input {
+    width: 100%; background: #2c2c2e; border: 1.5px solid #3a3a3c;
+    border-radius: 14px; padding: 15px 16px; color: #fff; font-size: 16px; outline: none;
+    -webkit-appearance: none; appearance: none;
+  }
+  .field-input:focus { border-color: #34d399; }
+  .btn-login {
+    width: 100%; background: #34d399; color: #fff; border: none;
+    border-radius: 14px; padding: 17px; font-size: 17px; font-weight: 700;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+    margin-top: 32px; -webkit-appearance: none;
+  }
+  .btn-login:active { opacity: 0.85; }
+  .login-footer { text-align: center; font-size: 11px; color: #555; margin-top: 16px; font-family: monospace; }
+
+  /* TOUR HEADER */
+  .tour-header { padding: 10px 16px 8px; flex-shrink: 0; }
+  .tour-title-row { display: flex; align-items: center; justify-content: space-between; }
+  .tour-title { font-size: 20px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px; }
+  .tour-date { font-size: 12px; color: #888; margin-top: 3px; }
+  .tour-btn-group { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+  .btn-logout { background: #3b82f6; border: none; border-radius: 10px; padding: 7px 12px; color: #fff; font-size: 11px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+  .btn-buero { background: #2c2c2e; border: 1px solid #3a3a3c; border-radius: 10px; padding: 7px 12px; color: #fff; font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+  .btn-logout:active, .btn-buero:active { opacity: 0.7; }
+
+  /* PATIENT CARDS */
+  .tour-list { padding: 6px 12px; }
+  .patient-card { background: #2c2c2e; border-radius: 14px; padding: 12px 14px; margin-bottom: 10px; cursor: pointer; border: 1px solid #3a3a3c; transition: opacity 0.15s; }
+  .patient-card.next { border-color: #34d399; }
+  .patient-card.done { opacity: 0.45; border-color: #2a2a2a; }
+  .patient-card:active { opacity: 0.65; }
+  .card-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 7px; }
+  .card-top-left { display: flex; flex-direction: column; }
+  .next-badge { background: #34d399; color: #000; font-size: 9px; font-weight: 700; padding: 3px 7px; border-radius: 5px; margin-bottom: 5px; display: inline-block; letter-spacing: 0.5px; align-self: flex-start; }
+  .done-badge { background: #1a3a2a; color: #34d399; font-size: 9px; font-weight: 700; padding: 3px 7px; border-radius: 5px; margin-bottom: 5px; display: block; width: fit-content; }
+  .vorfall-badge { background: #7f1d1d; color: #fca5a5; font-size: 9px; font-weight: 700; padding: 3px 7px; border-radius: 5px; margin-bottom: 5px; display: block; width: fit-content; }
+  .patient-name { font-size: 15px; font-weight: 600; color: #fff; }
+  .patient-id { font-size: 12px; color: #888; font-weight: 400; }
+  .card-info { display: flex; align-items: center; gap: 10px; font-size: 11px; color: #888; margin-bottom: 7px; }
+  .card-sep { border: none; border-top: 1px solid #3a3a3c; margin: 7px 0; }
+  .card-phone { font-size: 12px; color: #3b82f6; }
+  .end-of-day { text-align: center; color: #444; font-size: 10px; letter-spacing: 2px; padding: 16px 0; font-family: monospace; }
+
+  /* NAV BAR (back buttons) */
+  .nav-bar { padding: 8px 16px 6px; border-bottom: 1px solid #2a2a2a; flex-shrink: 0; }
+  .back-link { background: none; border: none; color: #34d399; font-size: 16px; cursor: pointer; display: flex; align-items: center; gap: 4px; padding: 4px 0; }
+  .back-link:active { opacity: 0.6; }
+
+  /* BÜRO */
+  .buero-header { display: flex; align-items: center; gap: 10px; padding: 12px 16px 10px; border-bottom: 1px solid #2a2a2a; flex-shrink: 0; }
+  .back-btn { background: none; border: none; color: #34d399; cursor: pointer; font-size: 22px; padding: 4px; }
+  .buero-title { font-size: 18px; font-weight: 700; color: #fff; }
+  .buero-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 14px 12px 10px; flex-shrink: 0; }
+  .stat-card { background: #2c2c2e; border-radius: 14px; padding: 14px 8px; text-align: center; }
+  .stat-num { font-size: 26px; font-weight: 700; color: #fff; }
+  .stat-label { font-size: 9px; color: #888; letter-spacing: 1px; margin-top: 2px; font-weight: 600; }
+  .buero-section-title { font-size: 10px; font-weight: 700; color: #888; letter-spacing: 1.5px; padding: 0 16px 10px; flex-shrink: 0; }
+  .buero-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #555; gap: 10px; }
+  .buero-end { text-align: center; color: #444; font-size: 10px; letter-spacing: 2px; padding: 16px 0; font-family: monospace; }
+
+  /* DETAIL */
+  .detail-content { padding: 12px 14px; }
+  .detail-card { background: #2c2c2e; border-radius: 14px; padding: 14px; border: 1px solid #3a3a3c; }
+  .detail-name { font-size: 17px; font-weight: 700; color: #fff; margin-bottom: 3px; }
+  .detail-time { font-size: 13px; color: #34d399; font-weight: 600; font-family: monospace; margin-bottom: 5px; }
+  .detail-addr { font-size: 13px; color: #888; line-height: 1.6; }
+  .detail-sep { border: none; border-top: 1px solid #3a3a3c; margin: 12px 0; }
+  .detail-note { font-size: 13px; color: #aaa; margin-bottom: 10px; }
+  .detail-tags { display: flex; flex-direction: column; gap: 6px; margin-top: 2px; align-items: flex-start; }
+  .risk-tag { font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 6px; }
+  .risk-tag.red { background: #7f1d1d; color: #fca5a5; }
+
+  /* VORFALL BLOCKS */
+  .detail-vorfall-block { margin-top: 12px; background: #2c2c2e; border: 2.5px solid #3a3a3c; border-radius: 10px; padding: 10px 12px; }
+  .detail-vorfall-block + .detail-vorfall-block { margin-top: 8px; }
+  .detail-vorfall-cat { font-size: 9px; font-weight: 700; color: #aaa; letter-spacing: 0.5px; margin-bottom: 5px; }
+  .detail-vorfall-txt { font-size: 13px; color: #e5e5e5; line-height: 1.4; }
+  .detail-vorfall-actions { display: flex; gap: 8px; margin-top: 10px; }
+  .vorfall-action-btn { flex: 1; border: none; border-radius: 8px; padding: 8px 0; font-size: 11px; font-weight: 700; cursor: pointer; }
+  .vorfall-action-btn.edit { background: #2c2c2e; color: #aaa; border: 1px solid #3a3a3c; }
+  .vorfall-action-btn.remove { background: #2c2c2e; color: #aaa; border: 1px solid #3a3a3c; }
+  .vorfall-action-btn:active { opacity: 0.7; }
+
+  /* BOTTOM BUTTONS */
+  .btn-row { padding: 10px 14px calc(var(--safe-bottom) + 14px); flex-shrink: 0; }
+  .btn-start { width: 100%; background: #34d399; color: #fff; border: none; border-radius: 14px; padding: 17px; font-size: 17px; font-weight: 700; cursor: pointer; }
+  .btn-start:active { opacity: 0.85; }
+  .btn-end { background: #dc2626; color: #fff; border: none; border-radius: 14px; padding: 17px; font-size: 17px; font-weight: 700; cursor: pointer; width: calc(100% - 28px); margin: 6px 14px calc(var(--safe-bottom) + 10px); flex-shrink: 0; }
+  .btn-end:active { opacity: 0.85; }
+  .btn-adjust { width: 100%; background: #3b82f6; color: #fff; border: none; border-radius: 14px; padding: 17px; font-size: 17px; font-weight: 700; cursor: pointer; }
+  .btn-adjust:active { opacity: 0.85; }
+  .next-hint { text-align: center; font-size: 10px; color: #555; font-family: monospace; padding: 4px 0 2px; flex-shrink: 0; }
+
+  /* ACTIVE VISIT */
+  .active-card { background: #2c2c2e; border-radius: 14px; padding: 14px; margin: 10px 14px 4px; border: 1px solid #3a3a3c; flex-shrink: 0; }
+  .active-badge-row { margin-top: 8px; }
+  .active-badge { font-size: 10px; font-weight: 700; color: #34d399; letter-spacing: 1px; }
+  .leistungen-title { font-size: 10px; font-weight: 700; color: #888; letter-spacing: 1.5px; padding: 8px 14px 8px; flex-shrink: 0; }
+  .leistungen-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 14px; flex-shrink: 0; }
+  .leistung-btn { background: #2c2c2e; border: 1px solid #3a3a3c; border-radius: 12px; padding: 16px 8px; color: #fff; cursor: pointer; text-align: center; font-size: 13px; display: flex; flex-direction: column; align-items: center; gap: 6px; transition: border-color 0.2s, background 0.2s; }
+  .leistung-btn.active-service { border-color: #34d399; background: #0d2e22; color: #34d399; }
+  .leistung-btn svg { width: 22px; height: 22px; stroke: #888; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .leistung-btn.active-service svg { stroke: #34d399; }
+  .leistung-single { grid-column: 1 / -1; }
+  .leistung-btn:active { opacity: 0.7; }
+  .vorfall-btn { margin: 10px 14px 4px; background: #2c2c2e; border: 1px solid #7f1d1d; border-radius: 12px; padding: 14px; color: #fca5a5; font-size: 13px; cursor: pointer; text-align: center; display: flex; align-items: center; justify-content: center; gap: 8px; flex-shrink: 0; }
+  .vorfall-btn:active { opacity: 0.7; }
+
+  /* BÜRO VISIT LOG */
+  .buero-visit-card { background: #2c2c2e; border-radius: 14px; padding: 12px 14px; margin: 0 12px 10px; border: 1px solid #3a3a3c; }
+  .buero-visit-card.has-vorfall { border-color: #7f1d1d; }
+  .buero-visit-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 8px; }
+  .buero-visit-name { font-size: 14px; font-weight: 700; color: #fff; }
+  .buero-visit-pid { font-size: 11px; color: #888; font-weight: 400; }
+  .buero-visit-time { font-size: 11px; color: #34d399; font-family: monospace; font-weight: 600; white-space: nowrap; }
+  .buero-visit-sep { border: none; border-top: 1px solid #3a3a3c; margin: 8px 0; }
+  .buero-leistungen { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 5px; }
+  .buero-leistung-tag { font-size: 9px; font-weight: 700; background: #0d2e22; color: #34d399; border: 1px solid #34d399; border-radius: 5px; padding: 3px 8px; }
+  .buero-no-leistung { font-size: 10px; color: #555; font-style: italic; }
+  .buero-vorfall-entry { margin-top: 6px; background: #1c1c1e; border-radius: 8px; padding: 7px 10px; border-left: 4px solid #ef4444; }
+  .buero-vorfall-cat { font-size: 9px; font-weight: 700; color: #aaa; letter-spacing: 0.5px; margin-bottom: 3px; }
+  .buero-vorfall-txt { font-size: 12px; color: #e5e5e5; line-height: 1.4; }
+
+  /* RESET BUTTON (floating) */
+  .reset-fab {
+    position: fixed; bottom: calc(var(--safe-bottom) + 20px); right: 20px;
+    background: #d97706; border: none; border-radius: 14px;
+    padding: 12px 16px; color: #fff; font-size: 13px; font-weight: 700;
+    cursor: pointer; display: flex; align-items: center; gap: 6px;
+    box-shadow: 0 4px 20px rgba(217,119,6,0.5);
+    z-index: 500;
+  }
+  .reset-fab:active { opacity: 0.8; transform: scale(0.96); }
+  .reset-fab svg { width: 16px; height: 16px; }
+
+  /* SETTINGS GEAR */
+  .settings-gear-btn { background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 4px; opacity: 0.75; }
+  .settings-gear-btn svg { width: 16px; height: 16px; stroke: #aaa; fill: none; stroke-width: 2; }
+  .settings-gear-btn:active { opacity: 0.4; }
+
+  /* SETTINGS MODAL */
+  .settings-overlay { position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,0.5); display: flex; align-items: flex-start; justify-content: flex-start; opacity: 0; pointer-events: none; transition: opacity 0.18s; }
+  .settings-overlay.open { opacity: 1; pointer-events: all; }
+  .settings-panel { margin-top: calc(var(--safe-top) + 48px); margin-left: 12px; background: #2c2c2e; border: 1px solid #3a3a3c; border-radius: 16px; padding: 16px; min-width: 160px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); transform: scale(0.92) translateY(-8px); transform-origin: top left; transition: transform 0.2s cubic-bezier(0.32,0.72,0,1), opacity 0.18s; opacity: 0; }
+  .settings-overlay.open .settings-panel { transform: scale(1) translateY(0); opacity: 1; }
+  .settings-panel-title { font-size: 10px; font-weight: 700; color: #888; letter-spacing: 1.5px; margin-bottom: 12px; }
+  .mode-options { display: flex; flex-direction: column; gap: 8px; }
+  .mode-option { display: flex; align-items: center; gap: 10px; background: #1c1c1e; border: 1.5px solid #3a3a3c; border-radius: 12px; padding: 11px 12px; cursor: pointer; transition: border-color 0.15s; }
+  .mode-option.selected { border-color: #34d399; background: #0d2e22; }
+  .mode-option-icon { font-size: 16px; }
+  .mode-option-label { font-size: 13px; font-weight: 600; color: #fff; }
+
+  /* VORFALL MODAL */
+  .vorfall-overlay { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.55); display: flex; align-items: flex-end; opacity: 0; pointer-events: none; transition: opacity 0.22s; }
+  .vorfall-overlay.open { opacity: 1; pointer-events: all; }
+  .vorfall-sheet { width: 100%; background: #1c1c1e; border-radius: 20px 20px 0 0; padding: 20px 16px calc(var(--safe-bottom) + 28px); transform: translateY(100%); transition: transform 0.28s cubic-bezier(0.32,0.72,0,1); }
+  .vorfall-overlay.open .vorfall-sheet { transform: translateY(0); }
+  .vorfall-sheet-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .vorfall-sheet-title { font-size: 17px; font-weight: 700; color: #fff; }
+  .vorfall-close { background: #2c2c2e; border: none; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; color: #aaa; font-size: 16px; cursor: pointer; }
+  .vorfall-close:active { opacity: 0.6; }
+  .vorfall-categories { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .vorfall-cat { background: #2c2c2e; border: 1.5px solid #3a3a3c; border-radius: 14px; padding: 16px 6px 14px; display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; transition: background 0.15s, border-color 0.15s; }
+  .vorfall-cat:active { background: #383838; }
+  .vorfall-cat.selected { border-color: #3b82f6; background: #0f1e33; }
+  .vorfall-cat-icon { font-size: 24px; line-height: 1; }
+  .vorfall-cat-label { font-size: 11px; font-weight: 600; color: #fff; text-align: center; }
+  .vorfall-input-area { margin-top: 14px; display: none; flex-direction: column; gap: 10px; }
+  .vorfall-input-area.visible { display: flex; }
+  .vorfall-textarea { width: 100%; background: #2c2c2e; border: 1.5px solid #3b82f6; border-radius: 12px; padding: 12px 14px; color: #fff; font-size: 15px; outline: none; resize: none; height: 90px; font-family: inherit; line-height: 1.5; }
+  .vorfall-textarea::placeholder { color: #555; }
+  .vorfall-mic-row { display: flex; align-items: center; gap: 10px; }
+  .vorfall-mic-btn { background: none; border: none; padding: 6px; color: #3b82f6; cursor: pointer; display: flex; align-items: center; flex-shrink: 0; }
+  .vorfall-mic-btn.recording { color: #ef4444; animation: mic-pulse 1.2s ease-in-out infinite; }
+  @keyframes mic-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .vorfall-mic-btn svg { width: 22px; height: 22px; }
+  .vorfall-mic-status { font-size: 11px; color: #555; font-family: monospace; flex: 1; }
+  .vorfall-mic-status.active { color: #ef4444; }
+  .vorfall-send { width: 100%; background: #dc2626; color: #fff; border: none; border-radius: 12px; padding: 15px; font-size: 15px; font-weight: 700; cursor: pointer; }
+  .vorfall-send:active { opacity: 0.85; }
+
+  /* ===== LIGHT MODE ===== */
+  body.light-mode, body.light-mode .app { background: #f2f2f7; }
+  body.light-mode .slide { background: #f2f2f7; }
+  body.light-mode .status-bar { background: #f2f2f7; color: #555; }
+  body.light-mode .status-time { color: #111; }
+  body.light-mode .login-title { color: #111; }
+  body.light-mode .login-sub { color: #888; }
+  body.light-mode .login-footer { color: #aaa; }
+  body.light-mode .field-label { color: #666; }
+  body.light-mode .field-input { background: #fff; border-color: #c7c7cc; color: #111; }
+  body.light-mode .field-input:focus { border-color: #059669; }
+  body.light-mode .tour-title { color: #111; }
+  body.light-mode .tour-date { color: #666; }
+  body.light-mode .btn-buero { background: #e0e0e5; border-color: #c7c7cc; color: #111; }
+  body.light-mode .patient-card { background: #fff; border-color: #d1d1d6; }
+  body.light-mode .patient-card.next { border-color: #059669; }
+  body.light-mode .patient-card.done { border-color: #e5e5ea; }
+  body.light-mode .patient-name { color: #111; }
+  body.light-mode .patient-id { color: #888; }
+  body.light-mode .card-info { color: #888; }
+  body.light-mode .card-sep { border-color: #e5e5ea; }
+  body.light-mode .done-badge { background: #d1fae5; color: #059669; }
+  body.light-mode .end-of-day { color: #bbb; }
+  body.light-mode .buero-header { border-color: #e5e5ea; }
+  body.light-mode .buero-title { color: #111; }
+  body.light-mode .back-btn { color: #059669; }
+  body.light-mode .stat-card { background: #fff; }
+  body.light-mode .stat-num { color: #111; }
+  body.light-mode .stat-label { color: #888; }
+  body.light-mode .buero-section-title { color: #888; }
+  body.light-mode .buero-empty { color: #bbb; }
+  body.light-mode .detail-card { background: #fff; border-color: #d1d1d6; }
+  body.light-mode .detail-name { color: #111; }
+  body.light-mode .detail-time { color: #059669; }
+  body.light-mode .detail-addr { color: #888; }
+  body.light-mode .detail-sep { border-color: #e5e5ea; }
+  body.light-mode .detail-note { color: #555; }
+  body.light-mode .back-link { color: #059669; }
+  body.light-mode .next-hint { color: #bbb; }
+  body.light-mode .active-card { background: #fff; border-color: #d1d1d6; }
+  body.light-mode .active-badge { color: #059669; }
+  body.light-mode .leistungen-title { color: #888; }
+  body.light-mode .leistung-btn { background: #fff; border-color: #d1d1d6; color: #111; }
+  body.light-mode .leistung-btn svg { stroke: #aaa; }
+  body.light-mode .leistung-btn.active-service { border-color: #059669; background: #d1fae5; color: #059669; }
+  body.light-mode .leistung-btn.active-service svg { stroke: #059669; }
+  body.light-mode .vorfall-btn { background: #fff; border-color: #fca5a5; color: #dc2626; }
+  body.light-mode .vorfall-sheet { background: #f2f2f7; }
+  body.light-mode .vorfall-sheet-title { color: #111; }
+  body.light-mode .vorfall-close { background: #e0e0e5; color: #555; }
+  body.light-mode .vorfall-cat { background: #fff; border-color: #d1d1d6; }
+  body.light-mode .vorfall-cat.selected { border-color: #3b82f6; background: #eff6ff; }
+  body.light-mode .vorfall-cat-label { color: #111; }
+  body.light-mode .vorfall-textarea { background: #fff; border-color: #3b82f6; color: #111; }
+  body.light-mode .vorfall-textarea::placeholder { color: #bbb; }
+  body.light-mode .vorfall-mic-status { color: #bbb; }
+  body.light-mode .vorfall-mic-status.active { color: #ef4444; }
+  body.light-mode .detail-vorfall-block { background: #fff; border-color: #d1d1d6; }
+  body.light-mode .detail-vorfall-cat { color: #888; }
+  body.light-mode .detail-vorfall-txt { color: #111; }
+  body.light-mode .vorfall-action-btn.edit, body.light-mode .vorfall-action-btn.remove { background: #f2f2f7; color: #666; border-color: #d1d1d6; }
+  body.light-mode .settings-panel { background: #fff; border-color: #d1d1d6; }
+  body.light-mode .settings-panel-title { color: #aaa; }
+  body.light-mode .mode-option { background: #f2f2f7; border-color: #d1d1d6; }
+  body.light-mode .mode-option.selected { border-color: #059669; background: #d1fae5; }
+  body.light-mode .mode-option-label { color: #111; }
+  body.light-mode .settings-gear-btn svg { stroke: #888; }
+  body.light-mode .buero-visit-card { background: #fff; border-color: #d1d1d6; }
+  body.light-mode .buero-visit-card.has-vorfall { border-color: #fca5a5; }
+  body.light-mode .buero-visit-name { color: #111; }
+  body.light-mode .buero-visit-sep { border-color: #e5e5ea; }
+  body.light-mode .buero-leistung-tag { background: #d1fae5; color: #059669; border-color: #059669; }
+  body.light-mode .buero-no-leistung { color: #bbb; }
+  body.light-mode .buero-vorfall-entry { background: #fff5f5; border-left-color: #ef4444; }
+  body.light-mode .buero-vorfall-cat { color: #aaa; }
+  body.light-mode .buero-vorfall-txt { color: #333; }
+  body.light-mode .nav-bar { border-color: #e5e5ea; }
+  body.light-mode .vorfall-overlay { background: rgba(0,0,0,0.3); }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="slides">
+
+    <!-- LOGIN -->
+    <div class="slide active" id="login">
+      <div class="status-bar">
+        <span class="status-time">00:00</span>
+        <div style="width:20px;"></div>
+        <div class="status-icons" id="login-status-icons"></div>
+      </div>
+      <div class="scroll-area">
+        <div class="login-inner">
+          <div class="login-top">
+            <div class="login-logo">
+              <svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            </div>
+            <div class="login-title">Anmeldung</div>
+            <div class="login-sub">Pflegedienst · Mainz</div>
+          </div>
+          <div class="login-form">
+            <div class="field-label">BENUTZERNAME</div>
+            <input class="field-input" type="text" autocomplete="off" placeholder="Benutzername"/>
+            <div class="field-label">PASSWORT</div>
+            <input class="field-input" type="password" placeholder="••••••••"/>
+            <button class="btn-login" onclick="renderTour();renderBuero();goTo('tour')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              Einloggen
+            </button>
+          </div>
+          <div class="login-footer">v1.0 · Pflegedienst Mainz GmbH</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOUR LIST -->
+    <div class="slide" id="tour">
+      <div class="status-bar">
+        <span class="status-time">00:00</span>
+        <button class="settings-gear-btn" onclick="openSettings()" title="Einstellungen">
+          <svg viewBox="0 0 24 24"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+        <div class="status-icons" id="tour-status-icons"></div>
+      </div>
+      <div class="tour-header">
+        <div class="tour-title-row">
+          <div class="tour-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Heutige Tour
+          </div>
+          <div class="tour-btn-group">
+            <button class="btn-logout" onclick="goTo('login')">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              Logout
+            </button>
+            <button class="btn-buero" onclick="goTo('buero')">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+              Büro
+            </button>
+          </div>
+        </div>
+        <div class="tour-date" id="tour-date-label">Samstag, 21. März · 0/8 Besuche</div>
+      </div>
+      <div class="scroll-area">
+        <div class="tour-list" id="tour-list"></div>
+      </div>
+    </div>
+
+    <!-- BÜRO -->
+    <div class="slide" id="buero">
+      <div class="status-bar">
+        <span class="status-time">00:00</span>
+        <div style="width:20px;"></div>
+        <div class="status-icons status-icons-auto"></div>
+      </div>
+      <div class="buero-header">
+        <button class="back-btn" onclick="goTo('tour')">←</button>
+        <span class="buero-title">Büro-Dashboard</span>
+      </div>
+      <div class="buero-stats">
+        <div class="stat-card">
+          <div style="color:#34d399;font-size:20px;">✓</div>
+          <div class="stat-num" id="stat-done">0</div>
+          <div class="stat-label">ERLEDIGT</div>
+        </div>
+        <div class="stat-card">
+          <div style="color:#3b82f6;font-size:20px;">⏱</div>
+          <div class="stat-num" id="stat-open">8</div>
+          <div class="stat-label">OFFEN</div>
+        </div>
+        <div class="stat-card">
+          <div style="color:#ef4444;font-size:20px;">⚠</div>
+          <div class="stat-num" id="stat-vorfaelle">0</div>
+          <div class="stat-label">VORFÄLLE</div>
+        </div>
+      </div>
+      <div class="buero-section-title">ABGESCHLOSSENE BESUCHE</div>
+      <div class="scroll-area">
+        <div id="buero-visit-log">
+          <div class="buero-empty" id="buero-empty-state" style="min-height:200px;">
+            <div style="font-size:40px;">📄</div>
+            <div style="font-size:14px;">Noch keine Besuche abgeschlossen</div>
+          </div>
+        </div>
+        <div class="buero-end">ENDE DES BERICHTS</div>
+      </div>
+    </div>
+
+    <!-- DETAIL -->
+    <div class="slide" id="detail">
+      <div class="status-bar">
+        <span class="status-time">00:00</span>
+        <div style="width:20px;"></div>
+        <div class="status-icons status-icons-auto"></div>
+      </div>
+      <div class="nav-bar">
+        <button class="back-link" onclick="goTo('tour')">
+          <svg width="10" height="16" viewBox="0 0 10 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M8 2L2 8l6 6"/></svg>
+          Tour
+        </button>
+      </div>
+      <div class="scroll-area">
+        <div class="detail-content">
+          <div class="detail-card" id="detail-card"></div>
+        </div>
+        <div class="next-hint" id="detail-next"></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-start" onclick="showActiveScreen(false)">Besuch starten</button>
+      </div>
+    </div>
+
+    <!-- ACTIVE VISIT -->
+    <div class="slide" id="active">
+      <div class="status-bar">
+        <span class="status-time">00:00</span>
+        <div style="width:20px;"></div>
+        <div class="status-icons status-icons-auto"></div>
+      </div>
+      <div class="nav-bar">
+        <button class="back-link" id="active-back-btn">
+          <svg width="10" height="16" viewBox="0 0 10 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M8 2L2 8l6 6"/></svg>
+          Tour
+        </button>
+      </div>
+      <div class="scroll-area">
+        <div class="active-card" id="active-card"></div>
+        <div class="leistungen-title">LEISTUNGEN</div>
+        <div class="leistungen-grid">
+          <button class="leistung-btn" data-key="hygiene" onclick="toggleService(this)">
+            <svg viewBox="0 0 24 24"><path d="M7 16.3c2.2 0 4-1.83 4-4.05 0-1.16-.57-2.26-1.71-3.19S7.29 6.75 7 5.3c-.29 1.45-1.14 2.84-2.29 3.76S3 11.1 3 12.25c0 2.22 1.8 4.05 4 4.05z"/><path d="M12.56 6.6A10.97 10.97 0 0 0 14 3.02c.5 2.5 2 4.9 4 6.5s3 3.5 3 5.5a6.98 6.98 0 0 1-11.91 4.97"/></svg>
+            Hygiene
+          </button>
+          <button class="leistung-btn" data-key="medikamente" onclick="toggleService(this)">
+            <svg viewBox="0 0 24 24"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
+            Medikamente
+          </button>
+          <button class="leistung-btn leistung-single" data-key="vitalzeichen" onclick="toggleService(this)">
+            <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            Vitalzeichen
+          </button>
+        </div>
+        <button class="vorfall-btn" onclick="openVorfall()">⚠ Vorfall melden</button>
+      </div>
+      <button class="btn-end" onclick="endVisit()">Besuch beenden</button>
+    </div>
+
+    <!-- POST VISIT -->
+    <div class="slide" id="post">
+      <div class="status-bar">
+        <span class="status-time">00:00</span>
+        <div style="width:20px;"></div>
+        <div class="status-icons status-icons-auto"></div>
+      </div>
+      <div class="nav-bar">
+        <button class="back-link" onclick="goTo('tour')">
+          <svg width="10" height="16" viewBox="0 0 10 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M8 2L2 8l6 6"/></svg>
+          Tour
+        </button>
+      </div>
+      <div class="scroll-area">
+        <div class="detail-content">
+          <div class="detail-card" id="post-card"></div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-adjust" onclick="showActiveScreen(true)">Besuch anpassen</button>
+      </div>
+    </div>
+
+  </div><!-- /slides -->
+</div><!-- /app -->
+
+<!-- RESET FAB -->
+<button class="reset-fab" onclick="doReset()">
+  <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+  Reset
+</button>
+
+<!-- SETTINGS MODAL -->
+<div class="settings-overlay" id="settings-overlay" onclick="closeSettingsOutside(event)">
+  <div class="settings-panel">
+    <div class="settings-panel-title">DARSTELLUNG</div>
+    <div class="mode-options">
+      <div class="mode-option selected" id="mode-dark" onclick="setMode('dark')">
+        <span class="mode-option-icon">🌙</span>
+        <span class="mode-option-label">Dunkel</span>
+      </div>
+      <div class="mode-option" id="mode-light" onclick="setMode('light')">
+        <span class="mode-option-icon">☀️</span>
+        <span class="mode-option-label">Hell</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- VORFALL MODAL -->
+<div class="vorfall-overlay" id="vorfall-overlay" onclick="closeVorfall(event)">
+  <div class="vorfall-sheet">
+    <div class="vorfall-sheet-header">
+      <span class="vorfall-sheet-title">Vorfall melden</span>
+      <button class="vorfall-close" onclick="closeVorfallBtn()">✕</button>
+    </div>
+    <div class="vorfall-categories">
+      <div class="vorfall-cat" data-cat="Medizinisch" onclick="selectVorfallCat(this)">
+        <span class="vorfall-cat-icon" style="color:#ef4444;">🩺</span>
+        <span class="vorfall-cat-label">Medizinisch</span>
+      </div>
+      <div class="vorfall-cat" data-cat="Organisation" onclick="selectVorfallCat(this)">
+        <span class="vorfall-cat-icon" style="color:#d97706;">🏢</span>
+        <span class="vorfall-cat-label">Organisation</span>
+      </div>
+      <div class="vorfall-cat" data-cat="Medikamente" onclick="selectVorfallCat(this)">
+        <span class="vorfall-cat-icon" style="color:#3b82f6;">💊</span>
+        <span class="vorfall-cat-label">Medikamente</span>
+      </div>
+    </div>
+    <div class="vorfall-input-area" id="vorfall-input-area">
+      <textarea class="vorfall-textarea" id="vorfall-textarea" placeholder="Vorfall beschreiben..." oninput="onVorfallInput()"></textarea>
+      <div class="vorfall-mic-row">
+        <button class="vorfall-mic-btn" id="vorfall-mic-btn" onclick="toggleMic()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="2" width="6" height="11" rx="3"/>
+            <path d="M5 10a7 7 0 0 0 14 0"/>
+            <line x1="12" y1="19" x2="12" y2="22"/>
+            <line x1="8" y1="22" x2="16" y2="22"/>
+          </svg>
+        </button>
+        <span class="vorfall-mic-status" id="vorfall-mic-status">Bereit</span>
+      </div>
+      <button class="vorfall-send" id="vorfall-send-btn" onclick="submitVorfall()" style="opacity:0.4;pointer-events:none;">Meldung absenden</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const patients = [
+  { id:0, name:'Martha Nielsen', pid:'P-10482', time:'07:00 – 07:30', km:'2,1', phone:'+49 170 1234567', tags:['STURZGEFAHR','DIABETES'], addr:'Große Bleiche 12<br>55116 Mainz', note:'Insulinkontrolle vor dem Frühstück nötig', next:'Nächste: Hans Weber (07:45) · 1,2 km entfernt' },
+  { id:1, name:'Hans Weber', pid:'P-20937', time:'07:45 – 08:05', km:'1,2', phone:'+49 171 2345678', tags:['ALLERGIE: PENICILLIN'], addr:'Römerwall 5<br>55131 Mainz', note:'Penicillin-Allergie beachten', next:'Nächste: Ingrid Hoffmann (08:30) · 3,4 km entfernt' },
+  { id:2, name:'Ingrid Hoffmann', pid:'P-31254', time:'08:30 – 09:10', km:'3,4', phone:'+49 172 3456789', tags:[], addr:'Schillerstraße 18<br>55116 Mainz', note:'', next:'Nächste: Friedrich Lang (09:30) · 0,8 km entfernt' },
+  { id:3, name:'Friedrich Lang', pid:'P-40871', time:'09:30 – 09:45', km:'0,8', phone:'+49 173 4567890', tags:['DEMENZ','STURZGEFAHR'], addr:'Augustinerstraße 3<br>55116 Mainz', note:'Orientierung täglich prüfen', next:'Nächste: Elena Petrova (10:00) · 4,2 km entfernt' },
+  { id:4, name:'Elena Petrova', pid:'P-55619', time:'10:00 – 10:30', km:'4,2', phone:'+49 174 5678901', tags:['HERZ'], addr:'Neutorstraße 22<br>55116 Mainz', note:'Herzmedikamente morgens', next:'Nächste: Karl Schmidt (11:00) · 1,5 km entfernt' },
+  { id:5, name:'Karl Schmidt', pid:'P-63042', time:'11:00 – 11:20', km:'1,5', phone:'+49 175 6789012', tags:[], addr:'Kaiserstraße 11<br>55116 Mainz', note:'', next:'Nächste: Helga Braun (12:00) · 2,8 km entfernt' },
+  { id:6, name:'Helga Braun', pid:'P-71385', time:'12:00 – 12:15', km:'2,8', phone:'+49 176 7890123', tags:[], addr:'Emmeranstraße 9<br>55116 Mainz', note:'', next:'Nächste: Werner Vogel (13:00) · 3,1 km entfernt' },
+  { id:7, name:'Werner Vogel', pid:'P-82946', time:'13:00 – 13:20', km:'3,1', phone:'+49 177 8901234', tags:['STURZGEFAHR'], addr:'Gartenstraße 14<br>55118 Mainz', note:'', next:'' },
+];
+
+const doneSet = new Set();
+let editingIndex = null;
+const vorfallSet = new Set();
+const vorfallData = {};
+const leistungenState = {};
+let currentId = 0;
+
+function updateTime() {
+  const now = new Date();
+  const t = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+  document.querySelectorAll('.status-time').forEach(el => el.textContent = t);
+}
+updateTime();
+setInterval(updateTime, 1000);
+
+function goTo(id) {
+  document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function patientCardHTML(p) {
+  const tagsHTML = p.tags.length
+    ? `<div class="detail-tags">${p.tags.map(t => `<span class="risk-tag red">⚠ ${t}</span>`).join('')}</div>`
+    : '';
+  const vds = vorfallData[p.id] || [];
+  const vorfallHTML = vds.map((vd, idx) => {
+    const borderColor = vd.cat === 'Medizinisch' ? '#ef4444' : vd.cat === 'Organisation' ? '#d97706' : '#3b82f6';
+    return `
+    <div class="detail-vorfall-block" style="border-color:${borderColor};">
+      <div class="detail-vorfall-cat">⚠ VORFALL · ${vd.cat.toUpperCase()}</div>
+      <div class="detail-vorfall-txt">${vd.txt}</div>
+      <div class="detail-vorfall-actions">
+        <button class="vorfall-action-btn edit" onclick="editVorfall(${p.id},${idx})">✎ Bearbeiten</button>
+        <button class="vorfall-action-btn remove" onclick="removeVorfall(${p.id},${idx})">✕ Entfernen</button>
+      </div>
+    </div>`;
+  }).join('');
+  return `
+    <div>
+      <div class="detail-name">${p.name} <span style="font-size:13px;color:#888;font-weight:400;">(${p.pid})</span></div>
+      <div class="detail-time">${p.time}</div>
+      <div class="detail-addr">${p.addr}</div>
+    </div>
+    ${(p.note || p.tags.length || vds.length) ? `
+      <hr class="detail-sep">
+      ${p.note ? `<div class="detail-note">${p.note}</div>` : ''}
+      ${tagsHTML}
+      ${vorfallHTML}
+    ` : ''}`;
+}
+
+function showActiveScreen(fromPost) {
+  const p = patients[currentId];
+  document.getElementById('active-card').innerHTML = patientCardHTML(p) +
+    `<div class="active-badge-row"><span class="active-badge">BESUCH AKTIV</span></div>`;
+  const saved = leistungenState[currentId] || new Set();
+  document.querySelectorAll('.leistung-btn').forEach(btn => {
+    btn.classList.toggle('active-service', saved.has(btn.dataset.key));
+  });
+  document.getElementById('active-back-btn').onclick = fromPost ? () => goTo('post') : () => goTo('detail');
+  goTo('active');
+}
+
+function toggleService(btn) {
+  btn.classList.toggle('active-service');
+  const current = new Set();
+  document.querySelectorAll('.leistung-btn').forEach(b => {
+    if (b.classList.contains('active-service')) current.add(b.dataset.key);
+  });
+  leistungenState[currentId] = current;
+}
+
+function renderBuero() {
+  const log = document.getElementById('buero-visit-log');
+  const empty = document.getElementById('buero-empty-state');
+  Array.from(log.children).forEach(el => { if (!el.id) log.removeChild(el); });
+  const donePatients = patients.filter(p => doneSet.has(p.id));
+  if (donePatients.length === 0) { empty.style.display = 'flex'; return; }
+  empty.style.display = 'none';
+  donePatients.forEach(p => {
+    const leistungen = leistungenState[p.id] ? [...leistungenState[p.id]] : [];
+    const vds = vorfallData[p.id] || [];
+    const hasVorfall = vds.length > 0;
+    const leistungLabels = { hygiene: 'Hygiene', medikamente: 'Medikamente', vitalzeichen: 'Vitalzeichen' };
+    const leistungHTML = leistungen.length
+      ? leistungen.map(k => `<span class="buero-leistung-tag">✓ ${leistungLabels[k] || k}</span>`).join('')
+      : `<span class="buero-no-leistung">Keine Leistungen dokumentiert</span>`;
+    const vorfallHTML = vds.map(vd => {
+      const bc = vd.cat === 'Medizinisch' ? '#ef4444' : vd.cat === 'Organisation' ? '#d97706' : '#3b82f6';
+      return `<div class="buero-vorfall-entry" style="border-left-color:${bc};">
+        <div class="buero-vorfall-cat">⚠ VORFALL · ${vd.cat.toUpperCase()}</div>
+        <div class="buero-vorfall-txt">${vd.txt}</div>
+      </div>`;
+    }).join('');
+    const card = document.createElement('div');
+    card.className = `buero-visit-card${hasVorfall ? ' has-vorfall' : ''}`;
+    card.innerHTML = `
+      <div class="buero-visit-header">
+        <div><div class="buero-visit-name">${p.name} <span class="buero-visit-pid">(${p.pid})</span></div></div>
+        <div class="buero-visit-time">${p.time}</div>
+      </div>
+      <hr class="buero-visit-sep">
+      <div class="buero-leistungen">${leistungHTML}</div>
+      ${vorfallHTML}`;
+    log.appendChild(card);
+  });
+}
+
+function renderTour() {
+  const done = doneSet.size;
+  document.getElementById('tour-date-label').textContent = `Samstag, 21. März · ${done}/8 Besuche`;
+  document.getElementById('stat-done').textContent = done;
+  document.getElementById('stat-open').textContent = 8 - done;
+  const totalVorfaelle = Object.keys(vorfallData).filter(id => doneSet.has(Number(id)) && vorfallData[id].length > 0).length;
+  document.getElementById('stat-vorfaelle').textContent = totalVorfaelle;
+  const list = document.getElementById('tour-list');
+  list.innerHTML = '';
+  const nextPatient = patients.find(p => !doneSet.has(p.id));
+  patients.forEach(p => {
+    const isDone = doneSet.has(p.id);
+    const isNext = nextPatient && nextPatient.id === p.id;
+    const hasVorfall = vorfallSet.has(p.id);
+    const badge = isNext
+      ? `<div class="next-badge">NÄCHSTE</div>`
+      : isDone
+        ? `<div class="done-badge">ERLEDIGT ✓</div>${hasVorfall ? '<div class="vorfall-badge">VORFALL</div>' : ''}`
+        : '';
+    const card = document.createElement('div');
+    card.className = `patient-card${isNext ? ' next' : ''}${isDone ? ' done' : ''}`;
+    card.onclick = () => openPatient(p.id);
+    card.innerHTML = `
+      <div class="card-top"><div class="card-top-left">
+        ${badge}
+        <div><span class="patient-name">${p.name}</span> <span class="patient-id">(${p.pid})</span></div>
+      </div></div>
+      <div class="card-info">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        ${p.time}
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        ${p.km} km
+      </div>
+      <hr class="card-sep">
+      <div class="card-phone">📞 ${p.phone}</div>`;
+    list.appendChild(card);
+  });
+  const end = document.createElement('div');
+  end.className = 'end-of-day';
+  end.textContent = 'ENDE DES TAGES';
+  list.appendChild(end);
+}
+
+function openPatient(id) {
+  currentId = id;
+  const p = patients[id];
+  if (doneSet.has(id)) {
+    document.getElementById('post-card').innerHTML = patientCardHTML(p);
+    goTo('post');
+  } else {
+    document.getElementById('detail-card').innerHTML = patientCardHTML(p);
+    document.getElementById('detail-next').textContent = p.next;
+    goTo('detail');
+  }
+}
+
+function endVisit() {
+  const current = new Set();
+  document.querySelectorAll('.leistung-btn').forEach(b => {
+    if (b.classList.contains('active-service')) current.add(b.dataset.key);
+  });
+  leistungenState[currentId] = current;
+  doneSet.add(currentId);
+  renderTour(); renderBuero(); goTo('tour');
+}
+
+function doReset() {
+  doneSet.clear(); vorfallSet.clear();
+  Object.keys(vorfallData).forEach(k => delete vorfallData[k]);
+  Object.keys(leistungenState).forEach(k => delete leistungenState[k]);
+  document.querySelectorAll('.leistung-btn').forEach(b => b.classList.remove('active-service'));
+  renderTour(); renderBuero(); goTo('login');
+}
+
+function openVorfall() {
+  editingIndex = null;
+  document.getElementById('vorfall-overlay').classList.add('open');
+  document.querySelectorAll('.vorfall-cat').forEach(c => c.classList.remove('selected'));
+  document.getElementById('vorfall-input-area').classList.remove('visible');
+  document.getElementById('vorfall-textarea').value = '';
+  document.getElementById('vorfall-mic-status').textContent = 'Bereit';
+  document.getElementById('vorfall-mic-status').classList.remove('active');
+  document.getElementById('vorfall-mic-btn').classList.remove('recording');
+}
+function closeVorfallBtn() { document.getElementById('vorfall-overlay').classList.remove('open'); }
+function closeVorfall(e) { if (e.target === document.getElementById('vorfall-overlay')) closeVorfallBtn(); }
+function selectVorfallCat(el) {
+  document.querySelectorAll('.vorfall-cat').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('vorfall-input-area').classList.add('visible');
+}
+
+let isRecognizing = false;
+function toggleMic() {
+  const btn = document.getElementById('vorfall-mic-btn');
+  const status = document.getElementById('vorfall-mic-status');
+  if (isRecognizing) {
+    isRecognizing = false; btn.classList.remove('recording');
+    status.textContent = 'Bereit'; status.classList.remove('active');
+  } else {
+    isRecognizing = true; btn.classList.add('recording');
+    status.textContent = '● Aufnahme läuft…'; status.classList.add('active');
+  }
+}
+
+function onVorfallInput() {
+  const txt = document.getElementById('vorfall-textarea').value.trim();
+  const btn = document.getElementById('vorfall-send-btn');
+  btn.style.opacity = txt ? '1' : '0.4';
+  btn.style.pointerEvents = txt ? 'all' : 'none';
+}
+
+let vorfallReturnScreen = 'active';
+function submitVorfall() {
+  const cat = document.querySelector('.vorfall-cat.selected');
+  const txt = document.getElementById('vorfall-textarea').value.trim();
+  if (!cat || !txt) return;
+  closeVorfallBtn();
+  document.getElementById('vorfall-textarea').value = '';
+  document.querySelectorAll('.vorfall-cat').forEach(c => c.classList.remove('selected'));
+  document.getElementById('vorfall-input-area').classList.remove('visible');
+  vorfallSet.add(currentId);
+  if (!vorfallData[currentId]) vorfallData[currentId] = [];
+  if (editingIndex !== null) {
+    vorfallData[currentId][editingIndex] = { cat: cat.dataset.cat, txt };
+    editingIndex = null;
+  } else {
+    vorfallData[currentId].push({ cat: cat.dataset.cat, txt });
+  }
+  refreshPatientCard(currentId); renderTour(); renderBuero();
+  goTo(vorfallReturnScreen);
+}
+
+function editVorfall(id, idx) {
+  currentId = id;
+  const arr = vorfallData[id];
+  if (!arr || !arr[idx]) return;
+  const vd = arr[idx];
+  vorfallReturnScreen = document.querySelector('.slide.active').id;
+  openVorfall();
+  editingIndex = idx;
+  setTimeout(() => {
+    const catEl = document.querySelector(`.vorfall-cat[data-cat="${vd.cat}"]`);
+    if (catEl) selectVorfallCat(catEl);
+    document.getElementById('vorfall-textarea').value = vd.txt;
+    onVorfallInput();
+  }, 50);
+}
+
+function removeVorfall(id, idx) {
+  vorfallData[id].splice(idx, 1);
+  if (vorfallData[id].length === 0) { delete vorfallData[id]; vorfallSet.delete(id); }
+  refreshPatientCard(id); renderTour(); renderBuero();
+}
+
+function refreshPatientCard(id) {
+  const p = patients[id];
+  const html = patientCardHTML(p);
+  const activeSlide = document.querySelector('.slide.active');
+  if (!activeSlide) return;
+  if (activeSlide.id === 'active') document.getElementById('active-card').innerHTML = html + '<div class="active-badge-row"><span class="active-badge">BESUCH AKTIV</span></div>';
+  if (activeSlide.id === 'detail') document.getElementById('detail-card').innerHTML = html;
+  if (activeSlide.id === 'post') document.getElementById('post-card').innerHTML = html;
+}
+
+function openSettings() { document.getElementById('settings-overlay').classList.add('open'); }
+function closeSettingsOutside(e) {
+  if (e.target === document.getElementById('settings-overlay'))
+    document.getElementById('settings-overlay').classList.remove('open');
+}
+function setMode(mode) {
+  document.getElementById('settings-overlay').classList.remove('open');
+  if (mode === 'light') {
+    document.body.classList.add('light-mode');
+    document.getElementById('mode-light').classList.add('selected');
+    document.getElementById('mode-dark').classList.remove('selected');
+  } else {
+    document.body.classList.remove('light-mode');
+    document.getElementById('mode-dark').classList.add('selected');
+    document.getElementById('mode-light').classList.remove('selected');
+  }
+  refreshStatusIcons();
+}
+
+function buildStatusIcons(color) {
+  return `
+    <svg width="17" height="12" viewBox="0 0 17 12" fill="${color}">
+      <rect x="0"  y="9" width="3" height="3" rx="1"/>
+      <rect x="4"  y="6" width="3" height="6" rx="1"/>
+      <rect x="8"  y="3" width="3" height="9" rx="1"/>
+      <rect x="12" y="0" width="3" height="12" rx="1"/>
+    </svg>
+    <svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round">
+      <path d="M1 4.5 C3.2 2 5.4 1 8 1 C10.6 1 12.8 2 15 4.5"/>
+      <path d="M3 6.8 C4.5 5 6.1 4.2 8 4.2 C9.9 4.2 11.5 5 13 6.8"/>
+      <path d="M5.2 9.1 C6.1 8 7 7.5 8 7.5 C9 7.5 9.9 8 10.8 9.1"/>
+      <circle cx="8" cy="11.5" r="0.8" fill="${color}" stroke="none"/>
+    </svg>
+    <svg width="25" height="12" viewBox="0 0 25 12" fill="none">
+      <rect x="0.5" y="0.5" width="21" height="11" rx="3.5" stroke="${color}" stroke-width="1" stroke-opacity="0.35"/>
+      <rect x="2" y="2" width="18" height="8" rx="2" fill="${color}"/>
+      <path d="M23 4.5 C23.8 4.5 24.5 5.1 24.5 6 C24.5 6.9 23.8 7.5 23 7.5" stroke="${color}" stroke-width="1" stroke-opacity="0.4" stroke-linecap="round"/>
+    </svg>`;
+}
+
+function refreshStatusIcons() {
+  const color = document.body.classList.contains('light-mode') ? '#000000' : '#ffffff';
+  document.querySelectorAll('.status-icons').forEach(el => { el.innerHTML = buildStatusIcons(color); });
+}
+
+renderTour();
+renderBuero();
+refreshStatusIcons();
+</script>
+</body>
+</html>
