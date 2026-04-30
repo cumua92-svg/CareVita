@@ -526,7 +526,7 @@
                 </button>
               </div>
             </div>
-            <div class="tour-date" id="tour-date-label">Samstag, 21. März · 0/8 Besuche</div>
+            <div class="tour-date" id="tour-date-label"></div>
           </div>
           <div class="tour-list" id="tour-list"></div>
         </div>
@@ -848,9 +848,14 @@ function renderBuero() {
   });
 }
 
+function getTodayLabel() {
+  const now = new Date();
+  return now.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' });
+}
+
 function renderTour() {
   const done = doneSet.size;
-  document.getElementById('tour-date-label').textContent = `Samstag, 21. März · ${done}/8 Besuche`;
+  document.getElementById('tour-date-label').textContent = `${getTodayLabel()} · ${done}/8 Besuche`;
   document.getElementById('stat-done').textContent = done;
   document.getElementById('stat-open').textContent = 8 - done;
   const totalVorfaelle = Object.keys(vorfallData).filter(id => doneSet.has(Number(id)) && vorfallData[id].length > 0).length;
