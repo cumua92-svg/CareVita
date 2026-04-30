@@ -344,11 +344,7 @@
 
     <!-- TOUR LIST -->
     <div class="slide" id="tour">
-      <div class="status-bar">
-        <button class="settings-gear-btn" onclick="openSettings()" title="Einstellungen">
-          <svg viewBox="0 0 24 24"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        </button>
-      </div>
+      <div class="status-bar"></div>
       <div class="tour-header">
         <div class="tour-title-row">
           <div class="tour-title">
@@ -366,13 +362,18 @@
                 Logout
               </button>
             </div>
-            <button class="btn-buero" onclick="goTo('buero')">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-              Büro
-            </button>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <button class="settings-gear-btn" onclick="openSettings()" title="Einstellungen">
+                <svg viewBox="0 0 24 24"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              </button>
+              <button class="btn-buero" onclick="goTo('buero')">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                Büro
+              </button>
+            </div>
           </div>
         </div>
-        <div class="tour-date" id="tour-date-label">Samstag, 21. März · 0/8 Besuche</div>
+        <div class="tour-date" id="tour-date-label"></div>
       </div>
       <div class="scroll-area">
         <div class="tour-list" id="tour-list"></div>
@@ -661,7 +662,11 @@ function renderBuero() {
 
 function renderTour() {
   const done = doneSet.size;
-  document.getElementById('tour-date-label').textContent = `Samstag, 21. März · ${done}/8 Besuche`;
+  const now = new Date();
+  const tage = ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'];
+  const monate = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+  const datumStr = `${tage[now.getDay()]}, ${now.getDate()}. ${monate[now.getMonth()]}`;
+  document.getElementById('tour-date-label').textContent = `${datumStr} · ${done}/8 Besuche`;
   document.getElementById('stat-done').textContent = done;
   document.getElementById('stat-open').textContent = 8 - done;
   const totalVorfaelle = Object.keys(vorfallData).filter(id => doneSet.has(Number(id)) && vorfallData[id].length > 0).length;
